@@ -1,0 +1,6 @@
+{
+  "name": "Satellite Imagery Archaeological Analysis",
+  "description": "Analyzes satellite imagery for archaeological features using Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
