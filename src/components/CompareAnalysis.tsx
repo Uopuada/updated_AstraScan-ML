@@ -30,28 +30,64 @@ export function CompareAnalysis() {
   // Auto-save comparison state
   useEffect(() => {
     const timer = setTimeout(() => {
-      const stateToSave = {
+      const fullState = {
         sideA: { annotations: sideA.annotations, autoFeatures: sideA.autoFeatures, dataUrl: sideA.dataUrl, base64: sideA.base64 },
         sideB: { annotations: sideB.annotations, autoFeatures: sideB.autoFeatures, dataUrl: sideB.dataUrl, base64: sideB.base64 },
         userNote,
         compareResult
       };
+
       if (sideA.dataUrl || sideB.dataUrl) {
-        localStorage.setItem('compare_v1', JSON.stringify(stateToSave));
+        try {
+          localStorage.setItem('compare_v2', JSON.stringify(fullState));
+        } catch (e: any) {
+          if (e.name === 'QuotaExceededError' || e.code === 22) {
+             // Fallback: Save state WITHOUT images if they are too large
+             const lightState = {
+                sideA: { annotations: sideA.annotations, autoFeatures: sideA.autoFeatures, dataUrl: null, base64: '' },
+                sideB: { annotations: sideB.annotations, autoFeatures: sideB.autoFeatures, dataUrl: null, base64: '' },
+                userNote,
+                compareResult,
+                _imgQuotaExceeded: true
+             };
+             try {
+                localStorage.setItem('compare_v2', JSON.stringify(lightState));
+             } catch (err) {
+                console.error("Storage fallback failed", err);
+             }
+          } else {
+             console.error("Save state failed", e);
+          }
+        }
       }
-    }, 1000);
+    }, 1500);
     return () => clearTimeout(timer);
   }, [sideA.annotations, sideA.autoFeatures, sideA.dataUrl, sideA.base64, sideB.annotations, sideB.autoFeatures, sideB.dataUrl, sideB.base64, userNote, compareResult]);
 
   const resumeState = () => {
-    const saved = localStorage.getItem('compare_v1');
+    const saved = localStorage.getItem('compare_v2') || localStorage.getItem('compare_v1');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setSideA(prev => ({ ...prev, ...parsed.sideA }));
-        setSideB(prev => ({ ...prev, ...parsed.sideB }));
+        setSideA(prev => ({ 
+          ...prev, 
+          ...parsed.sideA,
+          // Only overwrite image data if it was actually saved
+          dataUrl: parsed.sideA.dataUrl || prev.dataUrl,
+          base64: parsed.sideA.base64 || prev.base64
+        }));
+        setSideB(prev => ({ 
+          ...prev, 
+          ...parsed.sideB,
+          dataUrl: parsed.sideB.dataUrl || prev.dataUrl,
+          base64: parsed.sideB.base64 || prev.base64
+        }));
         setUserNote(parsed.userNote || '');
         setCompareResult(parsed.compareResult || null);
+        
+        if (parsed._imgQuotaExceeded) {
+          setCompareError("Note: Previous images were too large to auto-save. Annotations and report were recovered, but images must be re-uploaded.");
+        }
       } catch (e) {
         console.error("Resume failed", e);
       }
@@ -91,8 +127,8 @@ export function CompareAnalysis() {
     setIsExportingPDF(true);
     try {
       const [finalA, finalB] = await Promise.all([
-        mergeAnnotationsWithImage(sideA.dataUrl, sideA.annotations),
-        mergeAnnotationsWithImage(sideB.dataUrl, sideB.annotations)
+        mergeAnnotationsWithImage(sideA.dataUrl, sideA.annotations, sideA.autoFeatures),
+        mergeAnnotationsWithImage(sideB.dataUrl, sideB.annotations, sideB.autoFeatures)
       ]);
       
       await exportComparisonAsPDF(

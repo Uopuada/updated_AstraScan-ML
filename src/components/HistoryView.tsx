@@ -77,7 +77,8 @@ export function HistoryView({ history }: HistoryViewProps) {
       // 2. Merge annotations
       const annotatedUrl = await mergeAnnotationsWithImage(
         record.imageDataUrl, 
-        record.annotations, 
+        record.annotations,
+        record.autoFeatures || [],
         img.width, 
         img.height
       );

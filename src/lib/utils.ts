@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { AnnotationLine } from "../types"
+import { AnnotationLine, AutoDetectFeature } from "../types"
 import { jsPDF } from "jspdf"
 
 export function cn(...inputs: ClassValue[]) {
@@ -9,9 +9,15 @@ export function cn(...inputs: ClassValue[]) {
 
 const minMath = (a: number, b: number) => a < b ? a : b;
 
-export function mergeAnnotationsWithImage(dataUrl: string, annotations: AnnotationLine[], naturalW?: number, naturalH?: number): Promise<string> {
+export function mergeAnnotationsWithImage(
+  dataUrl: string, 
+  annotations: AnnotationLine[], 
+  autoFeatures: AutoDetectFeature[] = [],
+  naturalW?: number, 
+  naturalH?: number
+): Promise<string> {
   return new Promise((resolve) => {
-    if (annotations.length === 0) {
+    if (annotations.length === 0 && autoFeatures.length === 0) {
       resolve(dataUrl);
       return;
     }
@@ -30,6 +36,7 @@ export function mergeAnnotationsWithImage(dataUrl: string, annotations: Annotati
       }
       ctx.drawImage(img, 0, 0);
       
+      // Draw manual annotations
       annotations.forEach(line => {
         ctx.strokeStyle = line.color;
         ctx.fillStyle = line.color;
@@ -71,6 +78,32 @@ export function mergeAnnotationsWithImage(dataUrl: string, annotations: Annotati
           ctx.stroke();
         }
       });
+      
+      // Draw auto-detected features
+      autoFeatures.forEach(f => {
+        const x = (f.x * w) / 100;
+        const y = (f.y * h) / 100;
+        const fw = (f.width * w) / 100;
+        const fh = (f.height * h) / 100;
+
+        ctx.strokeStyle = '#10b981';
+        ctx.fillStyle = '#10b981';
+        ctx.lineWidth = Math.max(2, w / 400);
+        ctx.setLineDash([4, 2]);
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'miter';
+        
+        ctx.beginPath();
+        ctx.rect(x, y, fw, fh);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        ctx.font = `bold ${Math.max(10, w / 80)}px sans-serif`;
+        ctx.textBaseline = 'bottom';
+        // A little shadow or outline could help, but simple fill is fine.
+        ctx.fillText(f.label, x, y - 5);
+      });
+
       resolve(canvas.toDataURL('image/jpeg', 0.9));
     };
     img.onerror = () => resolve(dataUrl);

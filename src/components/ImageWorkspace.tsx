@@ -3,7 +3,8 @@ import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { 
   UploadCloud, X, Edit2, Hand, ZoomIn, ZoomOut, RotateCcw, RotateCw, 
   Trash2, Circle, Square, Type as TypeIcon, Crop as CropIcon, Ruler,
-  Undo2, Redo2, Layers, Pentagon, Spline, MousePointer2, Eye, EyeOff
+  Undo2, Redo2, Layers, Pentagon, Spline, MousePointer2, Eye, EyeOff,
+  ArrowLeftRight, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { AnnotationLine, Point, AutoDetectFeature } from '../types';
 import { cn } from '../lib/utils';
@@ -60,6 +61,14 @@ export function ImageWorkspace({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
+  const toolbarScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollToolbar = (direction: 'left' | 'right') => {
+    if (toolbarScrollRef.current) {
+      const scrollAmount = 200;
+      toolbarScrollRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     if (textInput?.show && textInputRef.current) {
@@ -464,129 +473,139 @@ export function ImageWorkspace({
       
       {/* Toolbar */}
       {!readOnly && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 bg-slate-800/90 backdrop-blur-md p-1.5 rounded-lg border border-slate-600 shadow-xl opacity-0 group-hover/workspace:opacity-100 transition-opacity">
-          
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center bg-slate-800/90 backdrop-blur-md rounded-lg border border-slate-600 shadow-xl opacity-100 md:opacity-0 md:group-hover/workspace:opacity-100 transition-opacity max-w-[calc(100%-2rem)] min-w-[40px]">
           <button 
-            type="button" onClick={() => { setTool('pan'); setCropRect(null); setTempPoints([]); }} 
-            className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300", tool === 'pan' && 'bg-blue-600 text-white hover:bg-blue-600')} title="Pan/Zoom">
-            <Hand className="w-4 h-4" />
+             onClick={() => scrollToolbar('left')}
+             className="px-2 self-stretch hover:bg-slate-700/50 hover:text-white text-slate-400 border-r border-slate-600 flex items-center justify-center shrink-0 transition-colors rounded-l-lg"
+             title="Scroll Left"
+          >
+             <ChevronLeft className="w-4 h-4" />
           </button>
-          
-          <div className="w-px h-6 bg-slate-600 mx-1" />
-
-          <button 
-            type="button" onClick={handleUndo} disabled={undoStack.length === 0}
-            className="p-1.5 rounded hover:bg-slate-700 text-slate-300 disabled:opacity-30" title="Undo Action">
-            <Undo2 className="w-4 h-4" />
-          </button>
-          <button 
-            type="button" onClick={handleRedo} disabled={redoStack.length === 0}
-            className="p-1.5 rounded hover:bg-slate-700 text-slate-300 disabled:opacity-30" title="Redo Action">
-            <Redo2 className="w-4 h-4" />
-          </button>
-
-          <div className="w-px h-6 bg-slate-600 mx-1" />
-
-          {onImageEdited && (
-             <>
-               <button 
-                 type="button" onClick={() => handleRotate(-90)} 
-                 className="p-1.5 rounded hover:bg-slate-700 text-slate-300" title="Rotate Left 90°">
-                 <RotateCcw className="w-4 h-4" />
-               </button>
-               <button 
-                 type="button" onClick={() => handleRotate(90)} 
-                 className="p-1.5 rounded hover:bg-slate-700 text-slate-300" title="Rotate Right 90°">
-                 <RotateCw className="w-4 h-4" />
-               </button>
-               <button 
-                 type="button" onClick={() => { setTool('crop'); setCropRect(null); setTempPoints([]); }} 
-                 className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300", tool === 'crop' && 'bg-blue-600 text-white')} title="Crop Imagery">
-                 <CropIcon className="w-4 h-4" />
-               </button>
-               <div className="w-px h-6 bg-slate-600 mx-1" />
-             </>
-          )}
-
-          <button 
-            type="button" onClick={() => { setTool('freehand'); setCropRect(null); setTempPoints([]); }} 
-            className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300", tool === 'freehand' && 'bg-blue-600 text-white')} title="Draw Route">
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button 
-            type="button" onClick={() => { setTool('rectangle'); setCropRect(null); setTempPoints([]); }} 
-            className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300", tool === 'rectangle' && 'bg-blue-600 text-white')} title="Rectangle Highlight">
-            <Square className="w-4 h-4" />
-          </button>
-          <button 
-            type="button" onClick={() => { setTool('circle'); setCropRect(null); setTempPoints([]); }} 
-            className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300", tool === 'circle' && 'bg-blue-600 text-white')} title="Circular Highlight">
-            <Circle className="w-4 h-4" />
-          </button>
-          <button 
-            type="button" onClick={() => { setTool('polygon'); setCropRect(null); setTempPoints([]); }} 
-            className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300", tool === 'polygon' && 'bg-blue-600 text-white')} title="Polygon Shape">
-            <Pentagon className="w-4 h-4" />
-          </button>
-          <button 
-            type="button" onClick={() => { setTool('polyline'); setCropRect(null); setTempPoints([]); }} 
-            className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300", tool === 'polyline' && 'bg-blue-600 text-white')} title="Polyline Path">
-            <Spline className="w-4 h-4" />
-          </button>
-          <button 
-            type="button" onClick={() => { setTool('text'); setCropRect(null); setTempPoints([]); }} 
-            className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300", tool === 'text' && 'bg-blue-600 text-white')} title="Add Text Label">
-            <TypeIcon className="w-4 h-4" />
-          </button>
-          <button 
-            type="button" onClick={() => { setTool('measure'); setCropRect(null); setTempPoints([]); }} 
-            className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300", tool === 'measure' && 'bg-blue-600 text-white')} title="Measure Distance">
-            <Ruler className="w-4 h-4" />
-          </button>
-
-          {(tempPoints.length > 0) && (
+          <div ref={toolbarScrollRef} className="flex items-center gap-1 p-1.5 overflow-x-auto custom-scrollbar-hide whitespace-nowrap min-w-0 scroll-smooth">
             <button 
-              onClick={finishMultiPoint}
-              className="ml-2 px-2 py-1 bg-green-600 hover:bg-green-500 text-white text-[10px] uppercase font-bold rounded"
-            >
-              Finish
+              type="button" onClick={() => { setTool('pan'); setCropRect(null); setTempPoints([]); }} 
+              className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300 shrink-0", tool === 'pan' && 'bg-blue-600 text-white hover:bg-blue-600')} title="Pan/Zoom">
+              <Hand className="w-4 h-4" />
             </button>
-          )}
+            
+            <div className="w-px h-6 bg-slate-600 mx-1 shrink-0" />
 
-          <div className="w-px h-6 bg-slate-600 mx-1" />
+            <button 
+              type="button" onClick={handleUndo} disabled={undoStack.length === 0}
+              className="p-1.5 rounded hover:bg-slate-700 text-slate-300 disabled:opacity-30 shrink-0" title="Undo Action">
+              <Undo2 className="w-4 h-4" />
+            </button>
+            <button 
+              type="button" onClick={handleRedo} disabled={redoStack.length === 0}
+              className="p-1.5 rounded hover:bg-slate-700 text-slate-300 disabled:opacity-30 shrink-0" title="Redo Action">
+              <Redo2 className="w-4 h-4" />
+            </button>
 
-          {/* Layer Controls */}
-          <div className="flex items-center gap-1 px-1">
-             <button 
-               onClick={() => setShowAnnotations(!showAnnotations)} 
-               className={cn("p-1.5 rounded", showAnnotations ? "text-blue-400" : "text-slate-500")}
-               title="Toggle Annotations layer"
-             >
-               {showAnnotations ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-             </button>
-             <button 
-               onClick={() => setShowAutoFeatures(!showAutoFeatures)} 
-               className={cn("p-1.5 rounded", showAutoFeatures ? "text-emerald-400" : "text-slate-500")}
-               title="Toggle Auto-detected features layer"
-             >
-               {showAutoFeatures ? <Layers className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-             </button>
-          </div>
+            <div className="w-px h-6 bg-slate-600 mx-1 shrink-0" />
 
-          {tool === 'measure' && (
-             <div className="flex items-center gap-2 px-2 border-l border-slate-600 ml-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Scale (px/m)</span>
-                <input 
-                  type="number"
-                  value={pixelsPerMeter}
-                  onChange={(e) => setPixelsPerMeter(Number(e.target.value))}
-                  className="w-12 h-6 text-xs bg-slate-700 border border-slate-600 rounded text-white px-1 focus:ring-1 focus:ring-blue-500 outline-none"
-                />
-             </div>
-          )}
-          
-          {isDrawingMode && (
-            <>
+            {onImageEdited && (
+               <>
+                 <button 
+                   type="button" onClick={() => handleRotate(-90)} 
+                   className="p-1.5 rounded hover:bg-slate-700 text-slate-300 shrink-0" title="Rotate Left 90°">
+                   <RotateCcw className="w-4 h-4" />
+                 </button>
+                 <button 
+                   type="button" onClick={() => handleRotate(90)} 
+                   className="p-1.5 rounded hover:bg-slate-700 text-slate-300 shrink-0" title="Rotate Right 90°">
+                   <RotateCw className="w-4 h-4" />
+                 </button>
+                 <button 
+                   type="button" onClick={() => { setTool('crop'); setCropRect(null); setTempPoints([]); }} 
+                   className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300 shrink-0", tool === 'crop' && 'bg-blue-600 text-white')} title="Crop Imagery">
+                   <CropIcon className="w-4 h-4" />
+                 </button>
+                 <div className="w-px h-6 bg-slate-600 mx-1 shrink-0" />
+               </>
+            )}
+
+            <button 
+              type="button" onClick={() => { setTool('freehand'); setCropRect(null); setTempPoints([]); }} 
+              className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300 shrink-0", tool === 'freehand' && 'bg-blue-600 text-white')} title="Draw Route">
+              <Edit2 className="w-4 h-4" />
+            </button>
+            <button 
+              type="button" onClick={() => { setTool('rectangle'); setCropRect(null); setTempPoints([]); }} 
+              className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300 shrink-0", tool === 'rectangle' && 'bg-blue-600 text-white')} title="Rectangle Highlight">
+              <Square className="w-4 h-4" />
+            </button>
+            <button 
+              type="button" onClick={() => { setTool('circle'); setCropRect(null); setTempPoints([]); }} 
+              className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300 shrink-0", tool === 'circle' && 'bg-blue-600 text-white')} title="Circular Highlight">
+              <Circle className="w-4 h-4" />
+            </button>
+            <button 
+              type="button" onClick={() => { setTool('polygon'); setCropRect(null); setTempPoints([]); }} 
+              className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300 shrink-0", tool === 'polygon' && 'bg-blue-600 text-white')} title="Polygon Shape">
+              <Pentagon className="w-4 h-4" />
+            </button>
+            <button 
+              type="button" onClick={() => { setTool('polyline'); setCropRect(null); setTempPoints([]); }} 
+              className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300 shrink-0", tool === 'polyline' && 'bg-blue-600 text-white')} title="Polyline Path">
+              <Spline className="w-4 h-4" />
+            </button>
+            <button 
+              type="button" onClick={() => { setTool('text'); setCropRect(null); setTempPoints([]); }} 
+              className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300 shrink-0", tool === 'text' && 'bg-blue-600 text-white')} title="Add Text Label">
+              <TypeIcon className="w-4 h-4" />
+            </button>
+            <button 
+              type="button" onClick={() => { setTool('measure'); setCropRect(null); setTempPoints([]); }} 
+              className={cn("p-1.5 rounded hover:bg-slate-700 text-slate-300 shrink-0", tool === 'measure' && 'bg-blue-600 text-white')} title="Measure Distance">
+              <Ruler className="w-4 h-4" />
+            </button>
+
+            {(tempPoints.length > 0) && (
+              <button 
+                type="button"
+                onClick={finishMultiPoint}
+                className="ml-2 px-2 py-1 bg-green-600 hover:bg-green-500 text-white text-[10px] uppercase font-bold rounded shrink-0"
+              >
+                Finish
+              </button>
+            )}
+
+            <div className="w-px h-6 bg-slate-600 mx-1 shrink-0" />
+
+            <div className="flex items-center gap-1 px-1 shrink-0">
+               <button 
+                 type="button"
+                 onClick={() => setShowAnnotations(!showAnnotations)} 
+                 className={cn("px-2 py-1.5 rounded flex items-center gap-1.5 text-xs font-medium transition-colors", showAnnotations ? "bg-blue-600/20 text-blue-400" : "text-slate-500 hover:bg-slate-700")}
+                 title="Toggle Manual Annotations layer"
+               >
+                 {showAnnotations ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                 <span>Manual</span>
+               </button>
+               <button 
+                 type="button"
+                 onClick={() => setShowAutoFeatures(!showAutoFeatures)} 
+                 className={cn("px-2 py-1.5 rounded flex items-center gap-1.5 text-xs font-medium transition-colors", showAutoFeatures ? "bg-emerald-600/20 text-emerald-400" : "text-slate-500 hover:bg-slate-700")}
+                 title="Toggle AI Features layer"
+               >
+                 {showAutoFeatures ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                 <span>AI Features</span>
+               </button>
+            </div>
+
+            {tool === 'measure' && (
+               <div className="flex items-center gap-2 px-2 border-l border-slate-600 ml-1 shrink-0">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Scale (px/m)</span>
+                  <input 
+                    type="number"
+                    value={pixelsPerMeter}
+                    onChange={(e) => setPixelsPerMeter(Number(e.target.value))}
+                    className="w-12 h-6 text-xs bg-slate-700 border border-slate-600 rounded text-white px-1 focus:ring-1 focus:ring-blue-500 outline-none"
+                  />
+               </div>
+            )}
+            
+            <div className="flex items-center shrink-0">
               <div className="w-px h-6 bg-slate-600 mx-1" />
               <div className="flex items-center gap-1 mr-1">
                 {['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#ffffff'].map(c => (
@@ -596,7 +615,6 @@ export function ImageWorkspace({
                     onClick={() => setColor(c)}
                     className={cn("w-5 h-5 rounded-full border-2 transition-transform", color === c ? 'border-zinc-300 scale-110' : 'border-transparent scale-90')}
                     style={{ backgroundColor: c }}
-                    title="Change color"
                   />
                 ))}
                 <div className="w-px h-6 bg-slate-600 mx-1" />
@@ -606,30 +624,24 @@ export function ImageWorkspace({
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-            </>
-          )}
+            </div>
 
-          {tool === 'measure' && (
-             <div className="flex items-center gap-2 ml-1 mr-2 relative group-tooltip">
-                <span className="text-xs text-slate-400 border-l border-slate-600 pl-2">Scale:</span>
-                <input 
-                  type="number" 
-                  value={pixelsPerMeter}
-                  onChange={e => setPixelsPerMeter(Math.max(0.1, Number(e.target.value)))}
-                  className="w-14 bg-slate-900 border border-slate-700 text-xs px-1 py-0.5 rounded text-white" 
-                  title="px/m"
-                /> <span className="text-xs text-slate-500">px/m</span>
-             </div>
-          )}
-
-          {!isAnalyzing && (
-            <>
-               <div className="w-px h-6 bg-slate-600 mx-1" />
-               <button onClick={onClearImage} className="p-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white" title="Remove image">
-                 <X className="w-4 h-4" />
-               </button>
-            </>
-          )}
+            {!isAnalyzing && (
+              <div className="flex items-center shrink-0">
+                 <div className="w-px h-6 bg-slate-600 mx-1" />
+                 <button type="button" onClick={onClearImage} className="p-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white" title="Remove image">
+                   <X className="w-4 h-4" />
+                 </button>
+              </div>
+            )}
+          </div>
+          <button 
+             onClick={() => scrollToolbar('right')}
+             className="px-2 self-stretch hover:bg-slate-700/50 hover:text-white text-slate-400 border-l border-slate-600 flex items-center justify-center shrink-0 transition-colors rounded-r-lg"
+             title="Scroll Right"
+          >
+             <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       )}
 

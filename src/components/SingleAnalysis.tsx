@@ -106,13 +106,13 @@ export function SingleAnalysis({ onAddRecord }: SingleAnalysisProps) {
     setSummaryResult(null);
 
     try {
-      const isTargeted = annotations.length > 0;
+      const isTargeted = annotations.length > 0 || autoFeatures.length > 0;
       let finalBase64 = base64Data;
       let targetMime = imageFile.type;
       
       // If annotations exist, compile them visually so Gemini can 'see' what to target
       if (isTargeted) {
-        const mergedDataUrl = await mergeAnnotationsWithImage(imageDataUrl, annotations, imgNaturalSize.w, imgNaturalSize.h);
+        const mergedDataUrl = await mergeAnnotationsWithImage(imageDataUrl, annotations, autoFeatures, imgNaturalSize.w, imgNaturalSize.h);
         finalBase64 = mergedDataUrl.split(',')[1];
         targetMime = 'image/jpeg';
       }
@@ -129,6 +129,7 @@ export function SingleAnalysis({ onAddRecord }: SingleAnalysisProps) {
         mimeType: imageFile.type,
         analysisResult: result,
         annotations,
+        autoFeatures,
         metadata: {
            size: imageFile.size,
            lastModified: imageFile.lastModified,
@@ -194,7 +195,7 @@ export function SingleAnalysis({ onAddRecord }: SingleAnalysisProps) {
     setExportMenuOpen(false);
     setIsExportingPDF(true);
     try {
-      const annotatedUrl = await mergeAnnotationsWithImage(imageDataUrl, annotations, imgNaturalSize.w, imgNaturalSize.h);
+      const annotatedUrl = await mergeAnnotationsWithImage(imageDataUrl, annotations, autoFeatures, imgNaturalSize.w, imgNaturalSize.h);
       const timestamp = new Date().toLocaleString();
       const title = `${imageFile?.name || 'Satellite Imagery'} - Analyzed at ${timestamp}`;
       await exportAsPDF(`vessel_report_${Date.now()}.pdf`, title, annotatedUrl, analysisResult);
@@ -208,8 +209,20 @@ export function SingleAnalysis({ onAddRecord }: SingleAnalysisProps) {
   return (
     <div className="flex flex-col h-full w-full p-8 max-w-7xl mx-auto space-y-6">
       <header className="flex items-center justify-between shrink-0">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Satellite Analysis Pipeline</h2>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-bold text-slate-800">Satellite Analysis Pipeline</h2>
+            {imageDataUrl && (
+              <button 
+                onClick={clearImage}
+                title="Refresh workspace for a new image"
+                className="text-sm px-3 py-1.5 bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 rounded-md transition-colors flex items-center gap-1.5 font-medium shadow-sm"
+              >
+                <RefreshCw className="w-4 h-4" />
+                New Analysis
+              </button>
+            )}
+          </div>
           <p className="text-slate-500 text-sm">Workspace: Primary Single-View Analysis</p>
         </div>
       </header>
@@ -373,7 +386,7 @@ export function SingleAnalysis({ onAddRecord }: SingleAnalysisProps) {
             {analysisResult && !isAnalyzing && !isAutoDetecting && (
               <div className="p-4 bg-slate-900 shrink-0 border-t border-slate-700">
                 <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="text-slate-500">Model: gemini-3.1-pro</span>
+                  <span className="text-slate-500">Model: gemini-3.6-flash</span>
                   <span className="text-emerald-400 font-medium">Completed</span>
                 </div>
                 <div className="h-1 bg-slate-700 rounded-full w-full overflow-hidden">

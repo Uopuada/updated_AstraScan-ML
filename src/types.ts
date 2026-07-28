@@ -35,6 +35,7 @@ export interface AnalysisRecord {
   mimeType: string;
   analysisResult: string | null;
   annotations: AnnotationLine[];
+  autoFeatures?: AutoDetectFeature[];
   metadata?: {
     size: number;
     lastModified: number;

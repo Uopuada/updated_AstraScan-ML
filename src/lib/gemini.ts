@@ -2,6 +2,26 @@ import { GoogleGenAI, Type, Schema } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+async function generateContentWithRetry(request: any, maxRetries = 5) {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      return await ai.models.generateContent(request);
+    } catch (error: any) {
+      if (error?.status === 'RESOURCE_EXHAUSTED' || error?.status === 429 || error?.code === 429 || error?.message?.includes('429')) {
+        attempt++;
+        if (attempt >= maxRetries) throw error;
+        // Exponential backoff with jitter
+        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
+
 const SYSTEM_INSTRUCTION = `You are a specialist in Aerial Archaeology and Remote Sensing.
 Your task is to analyze the provided satellite imagery and identify potential archaeological and geographical features. 
 You must use the following categories and terms as the key for your interpretation. Please structure your response as a Markdown report.
@@ -25,7 +45,7 @@ You must use the following categories and terms as the key for your interpretati
 --- KEY END ---
 
 For each category, if you observe features matching the terms in the imagery, list them and describe their appearance, location within the image, and any plausible interpretation. If a category is not visible or applicable, you may briefly note that or skip it.
-Format your output cleanly in Markdown, using headings for categories.`
+Format your output cleanly in Markdown, using headings for categories.`;
 
 export async function analyzeSatelliteImagery(base64Image: string, mimeType: string, isTargeted: boolean = false, userNote?: string): Promise<string> {
   const imagePart = {
@@ -44,17 +64,17 @@ export async function analyzeSatelliteImagery(base64Image: string, mimeType: str
     prompt += `\n\nUSER-PROVIDED CONTEXT/NOTE: The user has provided the following information to assist in your analysis: "${userNote}". Please incorporate this context into your interpretation if relevant.`;
   }
 
-  const response = await ai.models.generateContent({
-    model: "gemini-flash-latest",
-    contents: {
+  const response = await generateContentWithRetry({
+    model: "gemini-3.6-flash",
+    contents: [{
       parts: [
         imagePart,
         { text: prompt }
       ]
-    },
+    }],
     config: {
       systemInstruction: SYSTEM_INSTRUCTION,
-      temperature: 0.2, // Low temperature for more analytical/factual output based on the key
+      temperature: 0.2,
     }
   });
 
@@ -64,14 +84,14 @@ export async function analyzeSatelliteImagery(base64Image: string, mimeType: str
 export async function summarizeText(text: string): Promise<string> {
   const prompt = "Summarize the following archaeological/geographical analysis report. Provide a concise bulleted summary of the main findings only.";
   
-  const response = await ai.models.generateContent({
-    model: "gemini-flash-latest",
-    contents: {
+  const response = await generateContentWithRetry({
+    model: "gemini-3.6-flash",
+    contents: [{
       parts: [
         { text: prompt },
         { text }
       ]
-    },
+    }],
     config: {
       temperature: 0.3,
     }
@@ -112,14 +132,14 @@ export async function autoDetectFeatures(base64Image: string, mimeType: string):
 
   const prompt = `Automatically scan this satellite imagery and detect potential archaeological and geographical features based on your expertise. Return a JSON array mapping coordinates surrounding the features, and provide a short label. Focus on clear structures, ruins, embankments, patterns, or water management systems.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-flash-latest",
-    contents: {
+  const response = await generateContentWithRetry({
+    model: "gemini-3.6-flash",
+    contents: [{
       parts: [
         imagePart,
         { text: prompt }
       ]
-    },
+    }],
     config: {
       systemInstruction: SYSTEM_INSTRUCTION,
       temperature: 0.1,
@@ -171,15 +191,15 @@ You must return a JSON object with a 'markdownReport' containing your textual co
     prompt += `\n\nUSER-PROVIDED CONTEXT/NOTE: The user has provided the following information to assist in your comparison: "${userNote}". Please incorporate this context into your interpretation if relevant.`;
   }
 
-  const response = await ai.models.generateContent({
-    model: "gemini-flash-latest",
-    contents: {
+  const response = await generateContentWithRetry({
+    model: "gemini-3.6-flash",
+    contents: [{
       parts: [
         imagePartA,
         imagePartB,
         { text: prompt }
       ]
-    },
+    }],
     config: {
       systemInstruction: SYSTEM_INSTRUCTION,
       temperature: 0.2,

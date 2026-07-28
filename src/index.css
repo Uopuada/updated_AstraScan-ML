@@ -28,4 +28,12 @@
   .custom-scrollbar-dark::-webkit-scrollbar-thumb:hover {
     background-color: #64748b; /* slate-500 */
   }
+
+  .custom-scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .custom-scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
