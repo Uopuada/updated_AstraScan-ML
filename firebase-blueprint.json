@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "AnalysisRecord": {
+      "title": "Analysis Record",
+      "description": "A saved satellite image analysis session.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "number" },
+        "fileName": { "type": "string", "maxLength": 256 },
+        "imageDataUrl": { "type": "string", "maxLength": 10485760 },
+        "base64Data": { "type": "string", "maxLength": 10485760 },
+        "mimeType": { "type": "string", "maxLength": 128 },
+        "analysisResult": { "type": "string", "maxLength": 50000 },
+        "annotations": { "type": "array" },
+        "autoFeatures": { "type": "array" },
+        "metadata": { "type": "object" },
+        "userId": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "timestamp", "userId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A registered user.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 256 },
+        "createdAt": { "type": "number" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile data."
+    },
+    "/users/{userId}/analysisRecords/{recordId}": {
+      "schema": { "$ref": "#/entities/AnalysisRecord" },
+      "description": "Analysis records saved by the user."
+    }
+  }
+}

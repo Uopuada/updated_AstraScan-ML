@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt']) && 
+             data.email is string && data.email.size() <= 256 &&
+             data.createdAt is number;
+    }
+
+    function isValidAnalysisRecord(data) {
+      return data.keys().hasAll(['id', 'timestamp', 'userId']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.timestamp is number &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.userId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+      
+      match /analysisRecords/{recordId} {
+        allow get: if isSignedIn() && request.auth.uid == userId && isValidId(recordId);
+        allow list: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn() && request.auth.uid == userId && isValidId(recordId) && isValidAnalysisRecord(incoming());
+        allow update: if isSignedIn() && request.auth.uid == userId && isValidId(recordId) && isValidAnalysisRecord(incoming()) && incoming().userId == existing().userId && incoming().createdAt == existing().createdAt;
+        allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(recordId);
+      }
+    }
+  }
+}

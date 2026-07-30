@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Loader2, Map as MapIcon, RefreshCw, Download, FileText, FileJson, FileSpreadsheet, AlignLeft, ScanSearch, FileDigit } from 'lucide-react';
+import { Loader2, Map as MapIcon, RefreshCw, Download, FileText, FileJson, FileSpreadsheet, AlignLeft, ScanSearch, FileDigit, Save, UploadCloud } from 'lucide-react';
 import { AnalysisRecord, AnnotationLine, AutoDetectFeature } from '../types';
 import { cn, exportAsText, exportAsJSON, exportAsCSV, exportAsGeoJSON, exportAsPDF, mergeAnnotationsWithImage } from '../lib/utils';
 import { analyzeSatelliteImagery, summarizeText, autoDetectFeatures } from '../lib/gemini';
@@ -190,6 +190,50 @@ export function SingleAnalysis({ onAddRecord }: SingleAnalysisProps) {
     exportAsGeoJSON(`scan_annotations_${Date.now()}.geojson`, annotations);
   };
 
+  const handleExportSession = () => {
+    const sessionData = {
+      imageFile: imageFile ? {
+        name: imageFile.name,
+        type: imageFile.type,
+        size: imageFile.size,
+        lastModified: imageFile.lastModified
+      } : null,
+      imageDataUrl,
+      base64Data,
+      annotations,
+      autoFeatures,
+      analysisResult,
+      summaryResult,
+      userNote,
+      imgNaturalSize
+    };
+    exportAsJSON(`analysis_session_${Date.now()}.json`, sessionData);
+  };
+
+  const handleImportSession = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const sessionData = JSON.parse(reader.result as string);
+        setImageFile(sessionData.imageFile ? new File([], sessionData.imageFile.name, { type: sessionData.imageFile.type, lastModified: sessionData.imageFile.lastModified }) : null);
+        setImageDataUrl(sessionData.imageDataUrl || null);
+        setBase64Data(sessionData.base64Data || '');
+        setAnnotations(sessionData.annotations || []);
+        setAutoFeatures(sessionData.autoFeatures || []);
+        setAnalysisResult(sessionData.analysisResult || null);
+        setSummaryResult(sessionData.summaryResult || null);
+        setUserNote(sessionData.userNote || '');
+        setImgNaturalSize(sessionData.imgNaturalSize || { w: 0, h: 0 });
+      } catch (err) {
+        setError('Failed to parse session file. It may be corrupted or in an invalid format.');
+      }
+    };
+    reader.readAsText(file);
+    if (e.target) e.target.value = '';
+  };
+
   const handleExportPDF = async () => {
     if (!analysisResult || !imageDataUrl) return;
     setExportMenuOpen(false);
@@ -222,6 +266,22 @@ export function SingleAnalysis({ onAddRecord }: SingleAnalysisProps) {
                 New Analysis
               </button>
             )}
+            <div className="flex items-center gap-2 ml-4 border-l pl-4 border-slate-200">
+              <label className="text-sm px-3 py-1.5 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 rounded-md transition-colors flex items-center gap-1.5 font-medium shadow-sm cursor-pointer">
+                <UploadCloud className="w-4 h-4" />
+                Load Session
+                <input type="file" accept=".json" onChange={handleImportSession} className="hidden" />
+              </label>
+              {imageDataUrl && (
+                <button
+                  onClick={handleExportSession}
+                  className="text-sm px-3 py-1.5 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 rounded-md transition-colors flex items-center gap-1.5 font-medium shadow-sm"
+                >
+                  <Save className="w-4 h-4" />
+                  Save Session
+                </button>
+              )}
+            </div>
           </div>
           <p className="text-slate-500 text-sm">Workspace: Primary Single-View Analysis</p>
         </div>

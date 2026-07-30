@@ -36,6 +36,7 @@ export interface AnalysisRecord {
   analysisResult: string | null;
   annotations: AnnotationLine[];
   autoFeatures?: AutoDetectFeature[];
+  userId?: string;
   metadata?: {
     size: number;
     lastModified: number;
@@ -56,4 +57,4 @@ export interface CompareResult {
   differences: CompareDifference[];
 }
 
-export type ViewMode = 'single' | 'compare' | 'history' | 'batch';
+export type ViewMode = 'single' | 'compare' | 'history' | 'batch' | 'about' | 'privacy';

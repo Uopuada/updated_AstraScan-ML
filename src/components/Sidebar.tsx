@@ -1,7 +1,8 @@
 import React from 'react';
-import { LayoutDashboard, History, Layers, List } from 'lucide-react';
+import { LayoutDashboard, History, Layers, List, LogOut } from 'lucide-react';
 import { ViewMode } from '../types';
 import { cn } from '../lib/utils';
+import { logout } from '../lib/firebase';
 
 interface SidebarProps {
   view: ViewMode;
@@ -64,13 +65,29 @@ export function Sidebar({ view, setView }: SidebarProps) {
         </button>
       </nav>
 
-      <div className="mt-auto rounded-lg border border-slate-200 bg-slate-50 p-4">
-        <div className="text-xs font-medium text-slate-500 mb-1">Training Reference</div>
-        <div className="text-sm font-semibold truncate text-slate-700">ML-Schema-Key-v4.pdf</div>
-        <div className="mt-2 flex items-center gap-2 text-[10px] text-green-600 font-bold uppercase">
-          <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
-          Active Reference
+      <div className="mt-auto space-y-4">
+        <div className="flex gap-2 text-xs font-medium text-slate-500 justify-center">
+          <button onClick={() => setView('about' as ViewMode)} className="hover:text-blue-600 hover:underline">About</button>
+          <span>•</span>
+          <button onClick={() => setView('privacy' as ViewMode)} className="hover:text-blue-600 hover:underline">Privacy</button>
         </div>
+        
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <div className="text-xs font-medium text-slate-500 mb-1">Training Reference</div>
+          <div className="text-sm font-semibold truncate text-slate-700">ML-Schema-Key-v4.pdf</div>
+          <div className="mt-2 flex items-center gap-2 text-[10px] text-green-600 font-bold uppercase">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+            Active Reference
+          </div>
+        </div>
+        
+        <button 
+          onClick={logout}
+          className="w-full flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign Out
+        </button>
       </div>
     </aside>
   );
