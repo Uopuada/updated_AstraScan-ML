@@ -77,6 +77,8 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
         setAuthError('This email is already registered. Please sign in.');
       } else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
         setAuthError('Invalid email or password.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setAuthError('Email/Password sign-in is not enabled. Please go to your Firebase Console -> Authentication -> Sign-in method, and enable Email/Password provider.');
       } else {
         setAuthError(err.message || 'Authentication failed');
       }

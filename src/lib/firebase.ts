@@ -44,6 +44,8 @@ export const loginWithGoogle = async () => {
     console.error("Login failed", error);
     if (error?.code === 'auth/network-request-failed') {
        alert("Network error during login. Please disable ad-blockers, tracking protection (like Brave Shields), or allow third-party cookies for this site, as they may block Firebase Authentication.");
+    } else if (error?.code === 'auth/unauthorized-domain') {
+       alert(`Google sign in failed because this app's URL is not authorized in your Firebase project. Please go to your Firebase Console (project: ${firebaseConfig.projectId}) -> Authentication -> Settings -> Authorized domains, and add the current domain (${window.location.hostname}) to the list.`);
     }
     throw error;
   }
